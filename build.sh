@@ -8,18 +8,27 @@ if [[ -z "${GSTREAMER_ROOT_ANDROID}" ]]; then
   exit 1
 fi
 
+if [[ -z "${NDK_DIR}" ]]; then
+  echo "You must define an environment variable called NDK_DIR and point it to the folder where you keep android ndk"
+  exit 1
+fi
+
 VERSION=$1
 DATE=`date "+%Y%m%d-%H%M%S"`
 
 rm -rf out
 mkdir out
-
-for TARGET in armv7 x86 arm arm64
+# arm armv7 x86 x86_64 arm64
+for TARGET in armv7 x86_64 arm64 x86
 do
+  if [[ ! -d "${GSTREAMER_ROOT_ANDROID}/${TARGET}" ]]; then
+      echo "\n\n=== Building GStreamer ${VERSION} for target ${TARGET} not possible as GStreamer does not have prebuild binaries for this target. ==="
+      continue
+  fi
   NDK_APPLICATION_MK="jni/${TARGET}.mk"
   echo "\n\n=== Building GStreamer ${VERSION} for target ${TARGET} with ${NDK_APPLICATION_MK} ==="
 
-  ndk-build NDK_APPLICATION_MK=$NDK_APPLICATION_MK
+  ${NDK_DIR}/ndk-build NDK_APPLICATION_MK=$NDK_APPLICATION_MK V=1 APP_STRIP_MODE=--strip-unneeded
 
   if [ $TARGET = "armv7" ]; then
     LIB="armeabi-v7a"
@@ -27,6 +36,8 @@ do
     LIB="armeabi"
   elif [ $TARGET = "arm64" ]; then
     LIB="arm64-v8a"
+  elif [ $TARGET = "x86_64" ]; then
+    LIB="x86_64"
   else
     LIB="x86"
   fi;
